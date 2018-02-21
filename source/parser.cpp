@@ -149,7 +149,7 @@ Person Parser::buildSinglePerson(QPair<int, int> bounds) {
             }
         }
     }
-    person.setPosition(m_adapter.getExcelCell("B" + QString::number(bounds.first)).cellText() + " " + currentOrgan);
+    person.setPosition(m_adapter.getExcelCell("B" + QString::number(bounds.first)).cellText() + " " + currentOrg.name);
     //ExcelCell cell;
     for (int i = bounds.first; i <= bounds.second; i++) {
         ExcelCell cell = m_adapter.getExcelCell("C" + QString::number(i));
@@ -166,40 +166,43 @@ Person Parser::buildSinglePerson(QPair<int, int> bounds) {
             cell = m_adapter.getExcelCell("D" + QString::number(i));
             int ownershipType = 0;
             double ownershipPart = 0;
-            QString text = cell.cellText();
+            QString text = cell.cellText().trimmed();
             if (!ownershipTypes.contains(text)) {
-                //if (text.indexOf("-") != -1) {
-                //    QString option = text.split("-").at(0).trimmed();
-                //    if (option == QString(u8"общая долевая")) {
-                //        ownershipType = 3;
-                //        QString ownershipPartText = text.split("-").at(1).trimmed();
-                //        if (ownershipPartText.indexOf("/") != -1) {
-                //            ownershipPart = ownershipPartText.split("/").at(0).toDouble() / ownershipPartText.split("/").at(1).toDouble();
-                //        }
-                //    }
-                //}
-                //else {
-                //    ownershipType = 0;
-                //}
-                QStringList parts = text.split(" ");
-                if (parts.size() == 2 && parts.at(0) == QString(u8"долевая"))
+                if (text.indexOf("-") != -1) // pre 2015 version
                 {
-                    ownershipType = 3;
-                    QStringList fraction = parts.at(1).split("/");
-                    if (fraction.size() == 2)
+                    QString option = text.split("-").at(0).trimmed();
+                    if (option == QString(u8"общая долевая")) {
+                        ownershipType = 3;
+                        QString ownershipPartText = text.split("-").at(1).trimmed();
+                        if (ownershipPartText.indexOf("/") != -1) {
+                            ownershipPart = ownershipPartText.split("/").at(0).toDouble() / ownershipPartText.split("/").at(1).toDouble();
+                        }
+                    }
+                }
+                else
+                {
+                    //    ownershipType = 0;
+                    //}
+                    QStringList parts = text.split(" ");
+                    if (parts.size() == 2 && parts.at(0) == QString(u8"долевая"))
                     {
-                        ownershipPart = fraction.at(0).toDouble() / fraction.at(1).toDouble();
+                        ownershipType = 3;
+                        QStringList fraction = parts.at(1).split("/");
+                        if (fraction.size() == 2)
+                        {
+                            ownershipPart = fraction.at(0).toDouble() / fraction.at(1).toDouble();
+                        }
+                        else
+                        {
+                            qDebug() << "error: cannot parse ownership text " << text;
+                            errorCount++;
+                        }
                     }
                     else
                     {
                         qDebug() << "error: cannot parse ownership text " << text;
                         errorCount++;
                     }
-                }
-                else
-                {
-                    qDebug() << "error: cannot parse ownership text " << text;
-                    errorCount++;
                 }
             }
             else {
